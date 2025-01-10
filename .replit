@@ -1,0 +1,22 @@
+# The command that runs the program.
+run = ["python3", "main.py"]
+# The primary language of the repl. There can be others, though!
+language = "python3"
+# The main file, which will be shown by default in the editor.
+entrypoint = "main.py"
+# A list of globs that specify which files and directories should
+# be hidden in the workspace.
+hidden = ["venv", ".config", "**/__pycache__", "**/.mypy_cache", "**/*.pyc"]
+modules = ["python-3.8"]
+
+# Specifies which nix channel to use when building the environment.
+[nix]
+channel = "stable-21_11"
+
+# The environment variables needed to correctly start Python and use the
+# package proxy.
+[env]
+
+# Enable unit tests. This is only supported for a few languages.
+[unitTest]
+language = "python3"
