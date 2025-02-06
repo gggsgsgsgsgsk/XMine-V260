@@ -1,41 +1,122 @@
-from colorama import Fore
+#!/usr/bin/env python3
+from colorama import Fore, init
 import time
 import secrets
-from random import randint, uniform
+from random import randint, uniform, random
 import os
 import sys
-import select
-import tty
-import termios
 import signal
 import re
+import atexit
 
-ascii_art = f"""
-{Fore.CYAN}
-██╗  ██╗███╗   ███╗██╗███╗   ██╗███████╗
-╚██╗██╔╝████╗ ████║██║████╗  ██║██╔════╝
- ╚███╔╝ ██╔████╔██║██║██╔██╗ ██║█████╗  
- ██╔╝██╗██║╚██╔╝██║██║██║╚██╗██║██╔══╝  
-██╔╝ ██╗██║ ╚═╝ ██║██║██║ ╚████║███████╗
-╚═╝  ╚═╝╚═╝     ╚═╝╚═╝╚═╝  ╚═══╝╚══════╝
-                 {Fore.YELLOW}v2.1
-{Fore.RESET}
-"""
+# Run using this command (when in the same directory):
+#   python3 mining_sim.py
 
-print(ascii_art)
+# IMPORTANT: use ctrl+x to exit, or ctrl+c if not working.
 
+init(autoreset=True)
+
+# ================= Configuration ==================
+# Adjust these settings as needed:
+CONFIG = {
+    "SLEEP_TIME": 0.05,                     # seconds per iteration (simulate work time)
+    "BLOCK_MINING_PROB_DENOMINATOR": 1200000, # ~1 block every 1,200,000 iterations (realistic chance)
+    "SELF_MINING_PROBABILITY": 20,           # probability that YOU mine the block (else, someone else does)
+    "SHARE_PROB_DENOMINATOR": 42,             # ~1 share every 42 iterations (simulate frequent share submissions)
+    "NORMAL_REWARD_MIN": 0.00000001,          # Lower bound for normal share reward in BTC (1 satoshi)
+    "NORMAL_REWARD_MAX": 0.00000005,          # Upper bound for normal share reward in BTC (5 satoshis)
+    "MEDIUM_SHARE_PROB_DENOMINATOR": 200,     # ~1 in 200 chance (if not big share) for a medium share
+    "MEDIUM_SHARE_REWARD_MIN": 0.000001,      # Lower bound for medium share reward in BTC (approx 100 satoshis)
+    "MEDIUM_SHARE_REWARD_MAX": 0.000005,      # Upper bound for medium share reward in BTC (approx 500 satoshis)
+    "BIG_SHARE_PROB_DENOMINATOR": 4000,       # ~1 in 4000 chance that a share is a "big share"
+    "BIG_SHARE_REWARD_MIN": 0.0001,           # Lower bound for big share reward in BTC
+    "BIG_SHARE_REWARD_MAX": 0.0005,           # Upper bound for big share reward in BTC
+    "BLOCK_REWARD": 6.25,                     # Block reward in BTC
+    "TX_FEES_MIN": 0.0,                       # Minimum transaction fees (BTC)
+    "TX_FEES_MAX": 0.5,                       # Maximum transaction fees (BTC)
+    "BTCVAL": 79278.80,                      # BTC fiat conversion value (e.g., in pounds)
+    "PAUSE_TIME_SHARE": 1,                    # pause (in seconds) when a medium or big share is awarded
+    "PAUSE_TIME_BLOCK": 2,                    # pause (in seconds) after a block is solved
+}
+
+letters = {
+    "X": [
+        "██╗  ██╗",
+        "╚██╗██╔╝",
+        " ╚███╔╝ ",
+        " ██╔██╗ ",
+        "██╔╝ ██╗",
+        "╚═╝  ╚═╝",
+    ],
+    "M": [
+        "███╗   ███╗",
+        "████╗ ████║",
+        "██╔████╔██║",
+        "██║╚██╔╝██║",
+        "██║ ╚═╝ ██║",
+        "╚═╝     ╚═╝"
+    ],
+    "I": [
+        "██╗",
+        "██║",
+        "██║",
+        "██║",
+        "██║",
+        "╚═╝"
+    ],
+    "N": [
+        "███╗   ██╗",
+        "████╗  ██║",
+        "██╔██╗ ██║",
+        "██║╚██╗██║",
+        "██║ ╚████║",
+        "╚═╝  ╚═══╝"
+    ],
+    "E": [
+        "███████╗",
+        "██╔════╝",
+        "█████╗  ",
+        "██╔══╝  ",
+        "███████╗",
+        "╚══════╝"
+    ]
+}
+
+gradient = [Fore.RED, Fore.YELLOW, Fore.GREEN, Fore.CYAN, Fore.BLUE, Fore.MAGENTA]
+
+for i in range(6):
+    line = (letters["X"][i] + "   " +
+            letters["M"][i] + "   " +
+            letters["I"][i] + "   " +
+            letters["N"][i] + "   " +
+            letters["E"][i])
+    print(gradient[i] + line)
+print(f"{Fore.YELLOW}v2.6.0 RELEASE\n{Fore.RESET}")
+
+# ================= Global Variables ====================
 continuing = False
-balance = 0.0
-btcval = 82253.44
+balance = 0.00
+btcval = CONFIG["BTCVAL"]
 wallet_address = ""
 start_time = 0
 total_addresses_mined = 0
 successful_addresses = []
+session_btc_earned = 0.00
+
+# Counters for shares and blocks
+small_shares_count = 0
+medium_shares_count = 0
+big_shares_count = 0
+blocks_count = 0
+other_blocks_count = 0
 
 balance_file = "balance.txt"
 if os.path.exists(balance_file):
     with open(balance_file, "r") as f:
-        balance = float(f.read())
+        try:
+            balance = float(f.read())
+        except ValueError:
+            balance = 0.00
 
 print("> 1 to Start or 2 to Exit?")
 answer = input("> ").lower()
@@ -50,35 +131,47 @@ if answer == "1":
             print(f"Invalid wallet address: {wallet_address}")
             exit()
     print(f"Wallet address {wallet_address} saved.")
-    print("Starting in 3")
-    time.sleep(1)
-    print("Starting in 2")
-    time.sleep(1)
-    print("Starting in 1")
-    time.sleep(0.8)
-    print("Starting..")
-    time.sleep(0.5)
+    for i in range(3, 0, -1):
+        print(f"Starting in {i}...")
+        time.sleep(1)
     print("Starting...")
     continuing = True
     start_time = time.time()
-
+    print("Press Ctrl+X to exit gracefully and see your session stats.")
 elif answer == "2":
-    print("Exiting..")
+    print("Exiting...")
     exit()
 
+# ================= Helper Functions =====================
 def is_ctrl_x_pressed():
-    fd = sys.stdin.fileno()
-    old_settings = termios.tcgetattr(fd)
+    """
+    Cross-platform check for Ctrl+X.
+    On Windows, uses msvcrt.
+    On Unix-like systems, uses termios and select.
+    """
     try:
-        tty.setcbreak(fd)
-        dr, _, _ = select.select([sys.stdin], [], [], 0)
-        if dr:
-            key = sys.stdin.read(1)
-            if key == '\x18':
-                return True
+        if os.name == 'nt':
+            import msvcrt
+            if msvcrt.kbhit():
+                ch = msvcrt.getch()
+                if ch == b'\x18':  # Ctrl+X
+                    return True
+        else:
+            import select, tty, termios
+            fd = sys.stdin.fileno()
+            old_settings = termios.tcgetattr(fd)
+            try:
+                tty.setcbreak(fd)
+                dr, _, _ = select.select([sys.stdin], [], [], 0)
+                if dr:
+                    key = sys.stdin.read(1)
+                    if key == '\x18':
+                        return True
+                return False
+            finally:
+                termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+    except Exception:
         return False
-    finally:
-        termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
 
 def handle_exit_signal(signum, frame):
     global continuing
@@ -88,60 +181,85 @@ signal.signal(signal.SIGINT, handle_exit_signal)
 signal.signal(signal.SIGTERM, handle_exit_signal)
 
 def generate_btc_address():
+    """Generate a pseudo-random Bitcoin address."""
     alphabet = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
     return "1" + ''.join(secrets.choice(alphabet) for _ in range(33))
 
 def simulate_block_solving():
-            """ Simulate the solving of a block with a delay and reward the miner with BTC. """
-            print(Fore.CYAN + "A block has been found! Solving it..." + Fore.RESET)
-            time.sleep(5)  # Simulate time taken to solve the block
+    global balance, session_btc_earned, blocks_count, other_blocks_count
+    print(Fore.CYAN + "\nA block event occurred!" + Fore.RESET)
+    time.sleep(5)
+    if random() < CONFIG["SELF_MINING_PROBABILITY"]:
+        tx_fees = round(uniform(CONFIG["TX_FEES_MIN"], CONFIG["TX_FEES_MAX"]), 8)
+        total_reward = CONFIG["BLOCK_REWARD"] + tx_fees
+        balance += total_reward
+        session_btc_earned += total_reward
+        blocks_count += 1
+        print(Fore.GREEN + f"Congratulations! You mined a block!\n"
+              f"Block Reward: {CONFIG['BLOCK_REWARD']} BTC, Transaction Fees: {tx_fees} BTC, "
+              f"Total: {total_reward:.8f} BTC (₤{total_reward * btcval:.2f})" + Fore.RESET)
+    else:
+        other_blocks_count += 1
+        print(Fore.RED + "Someone else has mined the block. No rewards for you." + Fore.RESET)
+    time.sleep(CONFIG["PAUSE_TIME_BLOCK"])
 
-            # Random chance that someone else might mine the block
-            if randint(1, 10) <= 2:  # 20% chance someone else mines it first
-                print(Fore.RED + "Block mining unsuccessful. Continuing..." + Fore.RESET)
-            else:
-                # If block is successfully mined
-                block_reward = 6.25  # Current Bitcoin block reward
-                transaction_fees = round(uniform(0.1, 2.0), 6)  # Simulate transaction fees
-                total_reward = block_reward + transaction_fees
+def print_stats():
+    session_money_earned = round(btcval * session_btc_earned, 2)
+    runtime = round(time.time() - start_time, 2)
+    success_rate = (len(successful_addresses) / total_addresses_mined) * 100 if total_addresses_mined > 0 else 0
+    print("\nYour final balance: " + Fore.GREEN + f"{balance:.8f} BTC (₤{round(btcval * balance, 2):,})")
+    print("This session: " + Fore.GREEN + f"{session_btc_earned:.8f} BTC (₤{session_money_earned:,})")
+    print(f"Total work units processed: {Fore.YELLOW}{total_addresses_mined}")
+    print(f"Session runtime: {Fore.YELLOW}{runtime} seconds{Fore.RESET}")
+    print(f"Successful rewards (shares + blocks): {Fore.YELLOW}{len(successful_addresses)}")
+    print(f"Success Rate: {Fore.YELLOW}{success_rate:.4f}%{Fore.RESET}")
+    print(f"Small Share Rewards: {Fore.YELLOW}{small_shares_count}{Fore.RESET}")
+    print(f"Medium Share Rewards: {Fore.YELLOW}{medium_shares_count}{Fore.RESET}")
+    print(f"Big Share Rewards: {Fore.YELLOW}{big_shares_count}{Fore.RESET}")
+    print(f"Blocks Mined by You: {Fore.YELLOW}{blocks_count}{Fore.RESET}")
+    print(f"Blocks Mined by Others: {Fore.YELLOW}{other_blocks_count}{Fore.RESET}")
+atexit.register(print_stats)
 
-                # Add reward to balance
-                global balance
-                balance += total_reward
-
-                # Display block solved and reward
-                print(Fore.GREEN + f"Block solved! {total_reward:.6f} BTC (£{total_reward * btcval:.2f})" + Fore.RESET)
-                time.sleep(3)
-
-
-session_btc_earned = 0.0
+# ================= Main Mining Loop =====================
 try:
     while continuing:
-        time.sleep(0.01)  # Simulating ongoing mining activity
         total_addresses_mined += 1
+        time.sleep(CONFIG["SLEEP_TIME"])
+        if randint(1, CONFIG["SHARE_PROB_DENOMINATOR"]) == 1:
+            if randint(1, CONFIG["BIG_SHARE_PROB_DENOMINATOR"]) == 1:
+                reward = round(uniform(CONFIG["BIG_SHARE_REWARD_MIN"], CONFIG["BIG_SHARE_REWARD_MAX"]), 8)
+                reward_type = "Big Share Reward"
+                big_shares_count += 1
+            elif randint(1, CONFIG["MEDIUM_SHARE_PROB_DENOMINATOR"]) == 1:
+                reward = round(uniform(CONFIG["MEDIUM_SHARE_REWARD_MIN"], CONFIG["MEDIUM_SHARE_REWARD_MAX"]), 8)
+                reward_type = "Medium Share Reward"
+                medium_shares_count += 1
+            else:
+                reward = round(uniform(CONFIG["NORMAL_REWARD_MIN"], CONFIG["NORMAL_REWARD_MAX"]), 8)
+                reward_type = "Share Reward"
+                small_shares_count += 1
+            balance += reward
+            session_btc_earned += reward
+            mined_wallet = generate_btc_address()
+            print(Fore.WHITE + f"> {mined_wallet}" + Fore.GREEN +
+                  f" > {reward_type}: {reward:.8f} BTC (₤{round(btcval * reward, 2):,})")
+            successful_addresses.append(mined_wallet)
+            if reward_type in ["Medium Share Reward", "Big Share Reward"]:
+                time.sleep(CONFIG["PAUSE_TIME_SHARE"])
+        else:
+            mined_wallet = generate_btc_address()
+            print(Fore.WHITE + f"> {mined_wallet}" + Fore.RED + " > 0.00000000 BTC (₤0.00)")
 
-        # 1 in 500,000 chance to find a block
-        if randint(1, 1000000) == 1:
+        if randint(1, CONFIG["BLOCK_MINING_PROB_DENOMINATOR"]) == 1:
             simulate_block_solving()
 
-        # Simulating generating BTC addresses
-        mined_wallet = generate_btc_address()
-        print(Fore.WHITE + f"> {mined_wallet}" + Fore.RED + " > 0.000000 BTC ($0.00)")
-
-        # Check if Ctrl+X is pressed to exit mining
         if is_ctrl_x_pressed():
             print("Exiting mining session...")
             continuing = False
 
+except KeyboardInterrupt:
+    print("KeyboardInterrupt received. Exiting mining session...")
+
 finally:
     with open(balance_file, "w") as f:
-        f.write(f"{balance:.6f}")
-    session_money_earned = round(btcval * session_btc_earned, 2)
-    runtime = round(time.time() - start_time, 2)
-    success_rate = (len(successful_addresses) / total_addresses_mined) * 100
-    print("\nYour final balance: " + Fore.GREEN + f"{balance:.6f} BTC (£" + str("{:,}".format(round(btcval * balance, 2))) + ")")
-    print("This session: " + Fore.GREEN + f"{session_btc_earned:.6f} BTC (£" + str("{:,}".format(session_money_earned)) + ")")
-    print(f"Total IPs mined: {Fore.YELLOW}{total_addresses_mined}")
-    print(f"Session runtime: {Fore.YELLOW}{runtime} seconds{Fore.RESET}")
-    print(f"Successful Addresses: {Fore.YELLOW}{len(successful_addresses)}")
-    print(f"Success Rate: {Fore.YELLOW}{success_rate:.2f}%{Fore.RESET}")
+        f.write(f"{balance:.8f}")
