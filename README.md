@@ -57,5 +57,3 @@ Keep in mind, this script is for educational and entertainment purposes only. It
 
    ```bash
    python3 mining_sim.py
-
-all credits to me
