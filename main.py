@@ -137,7 +137,7 @@ if answer == "1":
     print("Starting...")
     continuing = True
     start_time = time.time()
-    print("Press Ctrl+X to exit gracefully and see your session stats.")
+    print("Press Ctrl+X or Ctrl+C to exit and see your session stats.")
 elif answer == "2":
     print("Exiting...")
     exit()
@@ -197,7 +197,7 @@ def simulate_block_solving():
         blocks_count += 1
         print(Fore.GREEN + f"Congratulations! You mined a block!\n"
               f"Block Reward: {CONFIG['BLOCK_REWARD']} BTC, Transaction Fees: {tx_fees} BTC, "
-              f"Total: {total_reward:.8f} BTC (₤{total_reward * btcval:.2f})" + Fore.RESET)
+              f"Total: {total_reward:.8f} BTC (£{total_reward * btcval:.2f})" + Fore.RESET)
     else:
         other_blocks_count += 1
         print(Fore.RED + "Someone else has mined the block. No rewards for you." + Fore.RESET)
@@ -207,8 +207,8 @@ def print_stats():
     session_money_earned = round(btcval * session_btc_earned, 2)
     runtime = round(time.time() - start_time, 2)
     success_rate = (len(successful_addresses) / total_addresses_mined) * 100 if total_addresses_mined > 0 else 0
-    print("\nYour final balance: " + Fore.GREEN + f"{balance:.8f} BTC (₤{round(btcval * balance, 2):,})")
-    print("This session: " + Fore.GREEN + f"{session_btc_earned:.8f} BTC (₤{session_money_earned:,})")
+    print("\nYour final balance: " + Fore.GREEN + f"{balance:.8f} BTC (£{round(btcval * balance, 2):,})")
+    print("This session: " + Fore.GREEN + f"{session_btc_earned:.8f} BTC (£{session_money_earned:,})")
     print(f"Total work units processed: {Fore.YELLOW}{total_addresses_mined}")
     print(f"Session runtime: {Fore.YELLOW}{runtime} seconds{Fore.RESET}")
     print(f"Successful rewards (shares + blocks): {Fore.YELLOW}{len(successful_addresses)}")
@@ -242,13 +242,13 @@ try:
             session_btc_earned += reward
             mined_wallet = generate_btc_address()
             print(Fore.WHITE + f"> {mined_wallet}" + Fore.GREEN +
-                  f" > {reward_type}: {reward:.8f} BTC (₤{round(btcval * reward, 2):,})")
+                  f" > {reward_type}: {reward:.8f} BTC (£{round(btcval * reward, 2):,})")
             successful_addresses.append(mined_wallet)
             if reward_type in ["Medium Share Reward", "Big Share Reward"]:
                 time.sleep(CONFIG["PAUSE_TIME_SHARE"])
         else:
             mined_wallet = generate_btc_address()
-            print(Fore.WHITE + f"> {mined_wallet}" + Fore.RED + " > 0.00000000 BTC (₤0.00)")
+            print(Fore.WHITE + f"> {mined_wallet}" + Fore.RED + " > 0.00000000 BTC (£0.00)")
 
         if randint(1, CONFIG["BLOCK_MINING_PROB_DENOMINATOR"]) == 1:
             simulate_block_solving()
