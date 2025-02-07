@@ -22,18 +22,18 @@ CONFIG = {
     "SLEEP_TIME": 0.05,                      # seconds per iteration (simulate work time)
     "BLOCK_MINING_PROB_DENOMINATOR": 1200000,  # ~1 block every 1,200,000 iterations (realistic chance)
     "SELF_MINING_PROBABILITY": 20,            # probability that YOU mine the block (else, someone else does)
-    # Set the share event to occur 1 in 1000 iterations (rarer than before)
+    # Share events occur every 1 in 1000 iterations
     "SHARE_PROB_DENOMINATOR": 1000,
 
     "NORMAL_REWARD_MIN": 0.00000001,           # Lower bound for normal share reward in BTC (1 satoshi)
     "NORMAL_REWARD_MAX": 0.0000005,            # Upper bound for normal share reward in BTC
 
-    # Make medium share rewards rarer: 1 in 2000 chance among share events
+    # Medium share rewards are 1 in 2000 chance among share events
     "MEDIUM_SHARE_PROB_DENOMINATOR": 2000,
     "MEDIUM_SHARE_REWARD_MIN": 0.000001,       # Lower bound for medium share reward in BTC (~100 satoshis)
     "MEDIUM_SHARE_REWARD_MAX": 0.0005,         # Upper bound for medium share reward in BTC (~500 satoshis)
 
-    # Big share rewards now occur 1 in 5000 share events
+    # Big share rewards occur 1 in 5000 share events
     "BIG_SHARE_PROB_DENOMINATOR": 5000,
     "BIG_SHARE_REWARD_MIN": 0.001,             # Lower bound for big share reward in BTC
     "BIG_SHARE_REWARD_MAX": 0.008,             # Upper bound for big share reward in BTC
@@ -115,7 +115,6 @@ total_addresses_mined = 0
 successful_addresses = []
 session_btc_earned = 0.00
 
-# Counters for shares and blocks
 small_shares_count = 0
 medium_shares_count = 0
 big_shares_count = 0
@@ -136,20 +135,13 @@ answer = input("> ").lower()
 
 if answer == "1":
     valid_wallet = False
-    # Loop until a valid wallet address is entered.
-    # Loop until a valid wallet address is entered.
-    # Loop until a valid wallet address (or number) is entered.
     while not valid_wallet:
         print("Please enter your wallet address or number (you may add a dash and numbers after):")
         wallet_address = input("> ").strip()
-        # The regex now accepts either a Bitcoin address or a number.
-        # It captures the main part in the "address" group and optional extra digits in the "extra" group.
         pattern = r"^(?P<address>((bc1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{25,39}|1[123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]{25,39})|\d+))(?:-(?P<extra>\d+))?$"
         match = re.match(pattern, wallet_address)
         if match:
-            # Extract the main part (Bitcoin address or number)
             wallet_address = match.group("address")
-            # Optional extra digits after a dash (will be None if not provided)
             extra_digits = match.group("extra")
             valid_wallet = True
         else:
@@ -252,17 +244,14 @@ try:
         total_addresses_mined += 1
         time.sleep(CONFIG["SLEEP_TIME"])
         if randint(1, CONFIG["SHARE_PROB_DENOMINATOR"]) == 1:
-            # Check for Really Big Reward first (rarest event)
             if randint(1, CONFIG["REALLY_BIG_SHARE_PROB_DENOMINATOR"]) == 1:
                 reward = round(uniform(CONFIG["REALLY_BIG_SHARE_REWARD_MIN"], CONFIG["REALLY_BIG_SHARE_REWARD_MAX"]), 8)
                 reward_type = "Really Big Reward"
                 really_big_shares_count += 1
-            # Then check for a Big Share Reward
             elif randint(1, CONFIG["BIG_SHARE_PROB_DENOMINATOR"]) == 1:
                 reward = round(uniform(CONFIG["BIG_SHARE_REWARD_MIN"], CONFIG["BIG_SHARE_REWARD_MAX"]), 8)
                 reward_type = "Big Share Reward"
                 big_shares_count += 1
-            # Then check for a Medium Share Reward
             elif randint(1, CONFIG["MEDIUM_SHARE_PROB_DENOMINATOR"]) == 1:
                 reward = round(uniform(CONFIG["MEDIUM_SHARE_REWARD_MIN"], CONFIG["MEDIUM_SHARE_REWARD_MAX"]), 8)
                 reward_type = "Medium Share Reward"
