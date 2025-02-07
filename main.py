@@ -23,23 +23,23 @@ CONFIG = {
     "BLOCK_MINING_PROB_DENOMINATOR": 1200000,  # ~1 block every 1,200,000 iterations (realistic chance)
     "SELF_MINING_PROBABILITY": 20,            # probability that YOU mine the block (else, someone else does)
     # Set the share event to occur 1 in 1000 iterations (rarer than before)
-    "SHARE_PROB_DENOMINATOR": 1000,           
+    "SHARE_PROB_DENOMINATOR": 1000,
 
     "NORMAL_REWARD_MIN": 0.00000001,           # Lower bound for normal share reward in BTC (1 satoshi)
     "NORMAL_REWARD_MAX": 0.0000005,            # Upper bound for normal share reward in BTC
 
     # Make medium share rewards rarer: 1 in 2000 chance among share events
-    "MEDIUM_SHARE_PROB_DENOMINATOR": 2000,     
+    "MEDIUM_SHARE_PROB_DENOMINATOR": 2000,
     "MEDIUM_SHARE_REWARD_MIN": 0.000001,       # Lower bound for medium share reward in BTC (~100 satoshis)
     "MEDIUM_SHARE_REWARD_MAX": 0.0005,         # Upper bound for medium share reward in BTC (~500 satoshis)
 
     # Big share rewards now occur 1 in 5000 share events
-    "BIG_SHARE_PROB_DENOMINATOR": 5000,        
+    "BIG_SHARE_PROB_DENOMINATOR": 5000,
     "BIG_SHARE_REWARD_MIN": 0.001,             # Lower bound for big share reward in BTC
     "BIG_SHARE_REWARD_MAX": 0.008,             # Upper bound for big share reward in BTC
 
     # New "Really Big Reward": 1 in 50000 share events
-    "REALLY_BIG_SHARE_PROB_DENOMINATOR": 50000, 
+    "REALLY_BIG_SHARE_PROB_DENOMINATOR": 50000,
     "REALLY_BIG_SHARE_REWARD_MIN": 0.001,      # Lower bound for really big reward in BTC
     "REALLY_BIG_SHARE_REWARD_MAX": 0.5,        # Upper bound for really big reward in BTC
 
@@ -135,21 +135,23 @@ print("> 1 to Start or 2 to Exit?")
 answer = input("> ").lower()
 
 if answer == "1":
-    print("Please enter your wallet address to receive mined Bitcoin:")
-    wallet_address = input("> ").strip()
-    # Allow dashes in the input for readability, but remove them before validation.
-    wallet_address_clean = wallet_address.replace("-", "")
-    if not re.match(
-        r"^(bc1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{25,39}|1[123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]{25,39})$",
-        wallet_address_clean
-    ):
-        try:
-            int(wallet_address_clean)
-        except ValueError:
-            print(f"Invalid wallet address: {wallet_address}")
-            exit()
-    # Use the cleaned version (without dashes) for further processing.
-    wallet_address = wallet_address_clean
+    valid_wallet = False
+    # Loop until a valid wallet address is entered.
+    while not valid_wallet:
+        print("Please enter your wallet address to receive mined Bitcoin:")
+        wallet_address = input("> ").strip()
+        # Remove dashes for validation.
+        wallet_address_clean = wallet_address.replace("-", "")
+        # Validate wallet address (either a bech32 address or a legacy address)
+        if re.match(
+            r"^(bc1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{25,39}|1[123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]{25,39})$",
+            wallet_address_clean
+        ):
+            wallet_address = wallet_address_clean
+            valid_wallet = True
+        else:
+            print(f"Invalid wallet address: {wallet_address}. Please try again.")
+
     print(f"Wallet address {wallet_address} saved.")
     for i in range(3, 0, -1):
         print(f"Starting in {i}...")
