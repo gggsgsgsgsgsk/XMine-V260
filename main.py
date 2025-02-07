@@ -24,18 +24,21 @@ CONFIG = {
     "SELF_MINING_PROBABILITY": 20,           # probability that YOU mine the block (else, someone else does)
     "SHARE_PROB_DENOMINATOR": 42,             # ~1 share every 42 iterations (simulate frequent share submissions)
     "NORMAL_REWARD_MIN": 0.00000001,          # Lower bound for normal share reward in BTC (1 satoshi)
-    "NORMAL_REWARD_MAX": 0.00000005,          # Upper bound for normal share reward in BTC (5 satoshis)
-    "MEDIUM_SHARE_PROB_DENOMINATOR": 200,     # ~1 in 200 chance (if not big share) for a medium share
+    "NORMAL_REWARD_MAX": 0.0000005,           # Upper bound for normal share reward in BTC
+    "MEDIUM_SHARE_PROB_DENOMINATOR": 20,      # chance denominator for a medium share (if not any higher reward)
     "MEDIUM_SHARE_REWARD_MIN": 0.000001,      # Lower bound for medium share reward in BTC (approx 100 satoshis)
-    "MEDIUM_SHARE_REWARD_MAX": 0.000005,      # Upper bound for medium share reward in BTC (approx 500 satoshis)
-    "BIG_SHARE_PROB_DENOMINATOR": 4000,       # ~1 in 4000 chance that a share is a "big share"
-    "BIG_SHARE_REWARD_MIN": 0.0001,           # Lower bound for big share reward in BTC
-    "BIG_SHARE_REWARD_MAX": 0.0005,           # Upper bound for big share reward in BTC
+    "MEDIUM_SHARE_REWARD_MAX": 0.0005,        # Upper bound for medium share reward in BTC (approx 500 satoshis)
+    "BIG_SHARE_PROB_DENOMINATOR": 200,        # chance denominator for a big share
+    "BIG_SHARE_REWARD_MIN": 0.001,            # Lower bound for big share reward in BTC
+    "BIG_SHARE_REWARD_MAX": 0.008,            # Upper bound for big share reward in BTC
+    "REALLY_BIG_SHARE_PROB_DENOMINATOR": 800, # ~1 in 1000 chance (within a share event)
+    "REALLY_BIG_SHARE_REWARD_MIN": 0.001,      # Lower bound for really big reward in BTC
+    "REALLY_BIG_SHARE_REWARD_MAX": 0.5,        # Upper bound for really big reward in BTC
     "BLOCK_REWARD": 6.25,                     # Block reward in BTC
     "TX_FEES_MIN": 0.0,                       # Minimum transaction fees (BTC)
     "TX_FEES_MAX": 0.5,                       # Maximum transaction fees (BTC)
-    "BTCVAL": 79278.80,                      # BTC fiat conversion value (e.g., in pounds)
-    "PAUSE_TIME_SHARE": 1,                    # pause (in seconds) when a medium or big share is awarded
+    "BTCVAL": 79278.80,                       # BTC fiat conversion value (e.g., in pounds)
+    "PAUSE_TIME_SHARE": 1,                    # pause (in seconds) when a medium, big, or really big share is awarded
     "PAUSE_TIME_BLOCK": 2,                    # pause (in seconds) after a block is solved
 }
 
@@ -107,6 +110,7 @@ session_btc_earned = 0.00
 small_shares_count = 0
 medium_shares_count = 0
 big_shares_count = 0
+really_big_shares_count = 0
 blocks_count = 0
 other_blocks_count = 0
 
@@ -216,6 +220,7 @@ def print_stats():
     print(f"Small Share Rewards: {Fore.YELLOW}{small_shares_count}{Fore.RESET}")
     print(f"Medium Share Rewards: {Fore.YELLOW}{medium_shares_count}{Fore.RESET}")
     print(f"Big Share Rewards: {Fore.YELLOW}{big_shares_count}{Fore.RESET}")
+    print(f"Really Big Share Rewards: {Fore.YELLOW}{really_big_shares_count}{Fore.RESET}")
     print(f"Blocks Mined by You: {Fore.YELLOW}{blocks_count}{Fore.RESET}")
     print(f"Blocks Mined by Others: {Fore.YELLOW}{other_blocks_count}{Fore.RESET}")
 atexit.register(print_stats)
@@ -226,7 +231,11 @@ try:
         total_addresses_mined += 1
         time.sleep(CONFIG["SLEEP_TIME"])
         if randint(1, CONFIG["SHARE_PROB_DENOMINATOR"]) == 1:
-            if randint(1, CONFIG["BIG_SHARE_PROB_DENOMINATOR"]) == 1:
+            if randint(1, CONFIG["REALLY_BIG_SHARE_PROB_DENOMINATOR"]) == 1:
+                reward = round(uniform(CONFIG["REALLY_BIG_SHARE_REWARD_MIN"], CONFIG["REALLY_BIG_SHARE_REWARD_MAX"]), 8)
+                reward_type = "Really Big Reward"
+                really_big_shares_count += 1
+            elif randint(1, CONFIG["BIG_SHARE_PROB_DENOMINATOR"]) == 1:
                 reward = round(uniform(CONFIG["BIG_SHARE_REWARD_MIN"], CONFIG["BIG_SHARE_REWARD_MAX"]), 8)
                 reward_type = "Big Share Reward"
                 big_shares_count += 1
@@ -244,7 +253,7 @@ try:
             print(Fore.WHITE + f"> {mined_wallet}" + Fore.GREEN +
                   f" > {reward_type}: {reward:.8f} BTC (£{round(btcval * reward, 2):,})")
             successful_addresses.append(mined_wallet)
-            if reward_type in ["Medium Share Reward", "Big Share Reward"]:
+            if reward_type in ["Medium Share Reward", "Big Share Reward", "Really Big Reward"]:
                 time.sleep(CONFIG["PAUSE_TIME_SHARE"])
         else:
             mined_wallet = generate_btc_address()
