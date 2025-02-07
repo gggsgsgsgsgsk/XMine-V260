@@ -138,17 +138,19 @@ if answer == "1":
     valid_wallet = False
     # Loop until a valid wallet address is entered.
     # Loop until a valid wallet address is entered.
+    # Loop until a valid wallet address (or number) is entered.
     while not valid_wallet:
-        print("Please enter your wallet address to receive mined Bitcoin (you may add a dash and numbers after the address):")
+        print("Please enter your wallet address or number (you may add a dash and numbers after):")
         wallet_address = input("> ").strip()
-        # Use a regex with two parts: the bitcoin address, and an optional dash with extra numbers.
-        pattern = r"^(?P<address>(bc1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{25,39}|1[123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]{25,39}))(?:-(?P<extra>\d+))?$"
+        # The regex now accepts either a Bitcoin address or a number.
+        # It captures the main part in the "address" group and optional extra digits in the "extra" group.
+        pattern = r"^(?P<address>((bc1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{25,39}|1[123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]{25,39})|\d+))(?:-(?P<extra>\d+))?$"
         match = re.match(pattern, wallet_address)
         if match:
-            # Extract the main bitcoin address
+            # Extract the main part (Bitcoin address or number)
             wallet_address = match.group("address")
-            # Optionally, you can capture the extra digits if needed:
-            extra_digits = match.group("extra")  # will be None if not provided
+            # Optional extra digits after a dash (will be None if not provided)
+            extra_digits = match.group("extra")
             valid_wallet = True
         else:
             print(f"Invalid wallet address: {wallet_address}. Please try again.")
