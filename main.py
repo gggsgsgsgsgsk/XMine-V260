@@ -103,7 +103,7 @@ for i in range(6):
             letters["N"][i] + "   " +
             letters["E"][i])
     print(gradient[i] + line)
-print(f"{Fore.YELLOW}v2.6.0 RELEASE\n{Fore.RESET}")
+print(f"{Fore.YELLOW}v2.7.0 RELEASE\n{Fore.RESET}")
 
 # ================= Global Variables ====================
 continuing = False
@@ -137,17 +137,18 @@ answer = input("> ").lower()
 if answer == "1":
     valid_wallet = False
     # Loop until a valid wallet address is entered.
+    # Loop until a valid wallet address is entered.
     while not valid_wallet:
-        print("Please enter your wallet address to receive mined Bitcoin:")
+        print("Please enter your wallet address to receive mined Bitcoin (you may add a dash and numbers after the address):")
         wallet_address = input("> ").strip()
-        # Remove dashes for validation.
-        wallet_address_clean = wallet_address.replace("-", "")
-        # Validate wallet address (either a bech32 address or a legacy address)
-        if re.match(
-            r"^(bc1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{25,39}|1[123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]{25,39})$",
-            wallet_address_clean
-        ):
-            wallet_address = wallet_address_clean
+        # Use a regex with two parts: the bitcoin address, and an optional dash with extra numbers.
+        pattern = r"^(?P<address>(bc1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{25,39}|1[123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]{25,39}))(?:-(?P<extra>\d+))?$"
+        match = re.match(pattern, wallet_address)
+        if match:
+            # Extract the main bitcoin address
+            wallet_address = match.group("address")
+            # Optionally, you can capture the extra digits if needed:
+            extra_digits = match.group("extra")  # will be None if not provided
             valid_wallet = True
         else:
             print(f"Invalid wallet address: {wallet_address}. Please try again.")
