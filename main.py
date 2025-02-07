@@ -19,27 +19,36 @@ init(autoreset=True)
 # ================= Configuration ==================
 # Adjust these settings as needed:
 CONFIG = {
-    "SLEEP_TIME": 0.05,                     # seconds per iteration (simulate work time)
-    "BLOCK_MINING_PROB_DENOMINATOR": 1200000, # ~1 block every 1,200,000 iterations (realistic chance)
-    "SELF_MINING_PROBABILITY": 20,           # probability that YOU mine the block (else, someone else does)
-    "SHARE_PROB_DENOMINATOR": 42,             # ~1 share every 42 iterations (simulate frequent share submissions)
-    "NORMAL_REWARD_MIN": 0.00000001,          # Lower bound for normal share reward in BTC (1 satoshi)
-    "NORMAL_REWARD_MAX": 0.0000005,           # Upper bound for normal share reward in BTC
-    "MEDIUM_SHARE_PROB_DENOMINATOR": 20,      # chance denominator for a medium share (if not any higher reward)
-    "MEDIUM_SHARE_REWARD_MIN": 0.000001,      # Lower bound for medium share reward in BTC (approx 100 satoshis)
-    "MEDIUM_SHARE_REWARD_MAX": 0.0005,        # Upper bound for medium share reward in BTC (approx 500 satoshis)
-    "BIG_SHARE_PROB_DENOMINATOR": 200,        # chance denominator for a big share
-    "BIG_SHARE_REWARD_MIN": 0.001,            # Lower bound for big share reward in BTC
-    "BIG_SHARE_REWARD_MAX": 0.008,            # Upper bound for big share reward in BTC
-    "REALLY_BIG_SHARE_PROB_DENOMINATOR": 800, # ~1 in 1000 chance (within a share event)
+    "SLEEP_TIME": 0.05,                      # seconds per iteration (simulate work time)
+    "BLOCK_MINING_PROB_DENOMINATOR": 1200000,  # ~1 block every 1,200,000 iterations (realistic chance)
+    "SELF_MINING_PROBABILITY": 20,            # probability that YOU mine the block (else, someone else does)
+    # Set the share event to occur 1 in 1000 iterations (rarer than before)
+    "SHARE_PROB_DENOMINATOR": 1000,           
+
+    "NORMAL_REWARD_MIN": 0.00000001,           # Lower bound for normal share reward in BTC (1 satoshi)
+    "NORMAL_REWARD_MAX": 0.0000005,            # Upper bound for normal share reward in BTC
+
+    # Make medium share rewards rarer: 1 in 2000 chance among share events
+    "MEDIUM_SHARE_PROB_DENOMINATOR": 2000,     
+    "MEDIUM_SHARE_REWARD_MIN": 0.000001,       # Lower bound for medium share reward in BTC (~100 satoshis)
+    "MEDIUM_SHARE_REWARD_MAX": 0.0005,         # Upper bound for medium share reward in BTC (~500 satoshis)
+
+    # Big share rewards now occur 1 in 5000 share events
+    "BIG_SHARE_PROB_DENOMINATOR": 5000,        
+    "BIG_SHARE_REWARD_MIN": 0.001,             # Lower bound for big share reward in BTC
+    "BIG_SHARE_REWARD_MAX": 0.008,             # Upper bound for big share reward in BTC
+
+    # New "Really Big Reward": 1 in 50000 share events
+    "REALLY_BIG_SHARE_PROB_DENOMINATOR": 50000, 
     "REALLY_BIG_SHARE_REWARD_MIN": 0.001,      # Lower bound for really big reward in BTC
     "REALLY_BIG_SHARE_REWARD_MAX": 0.5,        # Upper bound for really big reward in BTC
-    "BLOCK_REWARD": 6.25,                     # Block reward in BTC
-    "TX_FEES_MIN": 0.0,                       # Minimum transaction fees (BTC)
-    "TX_FEES_MAX": 0.5,                       # Maximum transaction fees (BTC)
-    "BTCVAL": 79278.80,                       # BTC fiat conversion value (e.g., in pounds)
-    "PAUSE_TIME_SHARE": 1,                    # pause (in seconds) when a medium, big, or really big share is awarded
-    "PAUSE_TIME_BLOCK": 2,                    # pause (in seconds) after a block is solved
+
+    "BLOCK_REWARD": 6.25,                      # Block reward in BTC
+    "TX_FEES_MIN": 0.0,                        # Minimum transaction fees (BTC)
+    "TX_FEES_MAX": 0.5,                        # Maximum transaction fees (BTC)
+    "BTCVAL": 79278.80,                        # BTC fiat conversion value (e.g., in pounds)
+    "PAUSE_TIME_SHARE": 1,                     # pause (in seconds) when a medium, big, or really big share is awarded
+    "PAUSE_TIME_BLOCK": 2,                     # pause (in seconds) after a block is solved
 }
 
 letters = {
@@ -231,14 +240,17 @@ try:
         total_addresses_mined += 1
         time.sleep(CONFIG["SLEEP_TIME"])
         if randint(1, CONFIG["SHARE_PROB_DENOMINATOR"]) == 1:
+            # Check for Really Big Reward first (rarest event)
             if randint(1, CONFIG["REALLY_BIG_SHARE_PROB_DENOMINATOR"]) == 1:
                 reward = round(uniform(CONFIG["REALLY_BIG_SHARE_REWARD_MIN"], CONFIG["REALLY_BIG_SHARE_REWARD_MAX"]), 8)
                 reward_type = "Really Big Reward"
                 really_big_shares_count += 1
+            # Then check for a Big Share Reward
             elif randint(1, CONFIG["BIG_SHARE_PROB_DENOMINATOR"]) == 1:
                 reward = round(uniform(CONFIG["BIG_SHARE_REWARD_MIN"], CONFIG["BIG_SHARE_REWARD_MAX"]), 8)
                 reward_type = "Big Share Reward"
                 big_shares_count += 1
+            # Then check for a Medium Share Reward
             elif randint(1, CONFIG["MEDIUM_SHARE_PROB_DENOMINATOR"]) == 1:
                 reward = round(uniform(CONFIG["MEDIUM_SHARE_REWARD_MIN"], CONFIG["MEDIUM_SHARE_REWARD_MAX"]), 8)
                 reward_type = "Medium Share Reward"
