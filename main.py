@@ -137,13 +137,19 @@ answer = input("> ").lower()
 if answer == "1":
     print("Please enter your wallet address to receive mined Bitcoin:")
     wallet_address = input("> ").strip()
-    # Modified regex: Added '-' to allow dashes in the wallet address
-    if not re.match(r"^(bc1[-qpzry9x8gf2tvdw0s3jn54khce6mua7l]{25,39}|1[-123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]{25,39})$", wallet_address):
+    # Allow dashes in the input for readability, but remove them before validation.
+    wallet_address_clean = wallet_address.replace("-", "")
+    if not re.match(
+        r"^(bc1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{25,39}|1[123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]{25,39})$",
+        wallet_address_clean
+    ):
         try:
-            int(wallet_address)
+            int(wallet_address_clean)
         except ValueError:
             print(f"Invalid wallet address: {wallet_address}")
             exit()
+    # Use the cleaned version (without dashes) for further processing.
+    wallet_address = wallet_address_clean
     print(f"Wallet address {wallet_address} saved.")
     for i in range(3, 0, -1):
         print(f"Starting in {i}...")
