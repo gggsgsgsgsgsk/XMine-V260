@@ -137,7 +137,8 @@ answer = input("> ").lower()
 if answer == "1":
     print("Please enter your wallet address to receive mined Bitcoin:")
     wallet_address = input("> ").strip()
-    if not re.match(r"^(bc1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{25,39}|1[123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]{25,39})$", wallet_address):
+    # Modified regex: Added '-' to allow dashes in the wallet address
+    if not re.match(r"^(bc1[-qpzry9x8gf2tvdw0s3jn54khce6mua7l]{25,39}|1[-123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]{25,39})$", wallet_address):
         try:
             int(wallet_address)
         except ValueError:
